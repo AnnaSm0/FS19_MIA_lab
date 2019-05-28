@@ -1,4 +1,9 @@
-.idea/
-.DS_Store
-Background/.DS_Store
-/Data/
+.*
+/Data*/
+/pytorch-unet/
+/dentalimplants_train.pytable
+/dentalimplants_unet_best_model.pth
+/dentalimplants_val.pytable
+/Pytorch-UNet-master/
+__pycache__
+runs
