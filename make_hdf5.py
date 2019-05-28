@@ -18,7 +18,7 @@ dataname = "dentalimplants"
 patch_size = 500  # size of the tiles to extract and save in the database, must be >= to training size
 stride_size = 250  # distance to skip between patches, 1 indicated pixel wise extraction, patch_size would result in non-overlapping tiles
 mirror_pad_size = 250  # number of pixels to pad *after* resize to image with by mirroring (edge's of patches tend not to be analyzed well, so padding allows them to appear more centered in the patch)
-test_set_size = .1  # what percentage of the dataset should be used as a held out validation/testing set
+test_set_size = .2  # what percentage of the dataset should be used as a held out validation/testing set
 resize = 1  # resize input images
 classes = [0, 1]  # what classes we expect to have in the data, here we have only 2 classes but we could add additional classes and/or specify an index from which we would like to ignore
 
@@ -33,7 +33,7 @@ print("random seed (note down for reproducibility): %s" %(seed))
 img_dtype = tables.UInt8Atom()  # dtype in which the images will be saved, this indicates that images will be saved as unsigned int 8 bit, i.e., [0,255]
 filenameAtom = tables.StringAtom(itemsize=255)  # create an atom to store the filename of the image, just incase we need it later,
 
-files = glob.glob("/Users/annasmolinski/Documents/GitHub/FS19_MIA_lab/Data/*.jpg")  # create a list of the files, in this case we're only interested in files which have masks so we can use supervised learning
+files = glob.glob("/Users/annasmolinski/Documents/GitHub/FS19_MIA_lab/Data/masks/*.png")  # create a list of the files, in this case we're only interested in files which have masks so we can use supervised learning
 # create training and validation stages and split the files appropriately between them
 phases = {}
 phases["train"], phases["val"] = next(
@@ -53,8 +53,7 @@ filters = tables.Filters(complevel=6,
 
 for phase in phases.keys():  # now for each of the phases, we'll loop through the files
 
-    totals = np.zeros(
-        (2, len(classes)))  # we can to keep counts of all the classes in for in particular training, since we
+    totals = np.zeros((2, len(classes)))  # we can to keep counts of all the classes in for in particular training, since we
     totals[0, :] = classes  # can later use this information to create better weights
     hdf5_file_path = os.path.join('/Users/annasmolinski/Documents/GitHub/FS19_MIA_lab/', '%s_%s.pytable' % (dataname, phase))
     hdf5_file = tables.open_file(hdf5_file_path, mode='w')  # open the respective pytable
@@ -71,9 +70,8 @@ for phase in phases.keys():  # now for each of the phases, we'll loop through th
 
         print(fname)
         for imgtype in imgtypes:
-            # cv2.imshow(fname)
-            if (imgtype == "img"):  # if we're looking at an img, it must be 3 channel, but cv2 won't load it in the correct channel order, so we need to fix that
-                io = cv2.cvtColor(cv2.imread("/Users/annasmolinski/Documents/GitHub/FS19_MIA_lab/Data/*.jpg" + os.path.basename(fname). replace("_mask.png", ".jpg")), cv2.COLOR_BGR2RGB)
+            if imgtype == "img":  # if we're looking at an img, it must be 3 channel, but cv2 won't load it in the correct channel order, so we need to fix that
+                io = cv2.cvtColor(cv2.imread("/Users/annasmolinski/Documents/GitHub/FS19_MIA_lab/Data/"+os.path.basename(fname).replace("_mask.png",".jpg")), cv2.COLOR_BGR2RGB)
                 interp_method = PIL.Image.BICUBIC
 
             else:  # if its a mask image, then we only need a single channel (since grayscale 3D images are equal in all channels)
@@ -84,10 +82,8 @@ for phase in phases.keys():  # now for each of the phases, we'll loop through th
                         classes):  # sum the number of pixels, this is done pre-resize, the but proportions don't change which is really what we're after
                     totals[1, i] += sum(sum(io[:, :, 0] == key))
 
-            io = cv2.resize(io, (0, 0), fx=resize, fy=resize,
-                            interpolation=interp_method)  # resize it as specified above
-            io = np.pad(io, [(mirror_pad_size, mirror_pad_size), (mirror_pad_size, mirror_pad_size), (0, 0)],
-                        mode="reflect")
+            io = cv2.resize(io, (0, 0), fx=resize, fy=resize, interpolation=interp_method)  # resize it as specified above
+            io = np.pad(io, [(mirror_pad_size, mirror_pad_size), (mirror_pad_size, mirror_pad_size), (0, 0)], mode="reflect")
 
             # convert input image into overlapping tiles, size is ntiler x ntilec x 1 x patch_size x patch_size x3
             io_arr_out = sklearn.feature_extraction.image.extract_patches(io, (patch_size, patch_size, 3), stride_size)
